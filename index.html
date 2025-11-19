@@ -19,13 +19,39 @@
   <video id="preview"></video>
   <div id="result"></div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js"></script>
+  <script type="module">
+    import { BrowserQRCodeReader } from "https://cdn.jsdelivr.net/npm/@zxing/browser@latest/+esm";
+
+    const video = document.getElementById('preview');
+    const resultDiv = document.getElementById('result');
+
+    async function startScanner() {
+      const codeReader = new BrowserQRCodeReader();
+      try {
+        const result = await codeReader.decodeFromVideoDevice(null, 'preview', (res) => {
+          if (res) {
+            try {
+              const qr = res.getText();
+              const data = JSON.parse(atob(qr.split('=')[1]));
+              resultDiv.textContent = JSON.stringify(data, null, 2);
+            } catch (e) {
+              resultDiv.textContent = "QR leído, pero no se pudo interpretar el contenido.";
+            }
+          }
+        });
+      } catch (err) {
+        resultDiv.textContent = "Error al iniciar el lector: " + err;
+      }
+    }
+
+    startScanner();
+  </script>
   <script>
     const video = document.getElementById('preview');
     const resultDiv = document.getElementById('result');
 
     async function startCamera() {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } } })({ video: { facingMode: "environment" } });
       video.srcObject = stream;
       video.setAttribute('playsinline', true);
       video.play();
@@ -38,7 +64,7 @@
         const ctx = canvas.getContext('2d');
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        ctx.imageSmoothingEnabled = false; ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const code = jsQR(imageData.data, canvas.width, canvas.height);
@@ -60,3 +86,4 @@
   </div>
 </body>
 </html>
+
