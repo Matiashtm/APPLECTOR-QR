@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lector QR ARCA</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #result { margin-top: 20px; white-space: pre-wrap; }
+    video { width: 300px; border: 1px solid #ccc; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h2>Lector QR de Factura ARCA</h2>
+  <p>Escanee el QR de la factura para ver los datos.</p>
+
+  <video id="preview"></video>
+  <div id="result"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js"></script>
+  <script>
+    const video = document.getElementById('preview');
+    const resultDiv = document.getElementById('result');
+
+    async function startCamera() {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      video.srcObject = stream;
+      video.setAttribute('playsinline', true);
+      video.play();
+      requestAnimationFrame(scanQR);
+    }
+
+    function scanQR() {
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, canvas.width, canvas.height);
+
+        if (code) {
+          try {
+            const data = JSON.parse(atob(code.data.split('=')[1]));
+            resultDiv.textContent = JSON.stringify(data, null, 2);
+          } catch (e) {
+            resultDiv.textContent = "QR leído, pero no se pudo interpretar el contenido.";
+          }
+        }
+      }
+      requestAnimationFrame(scanQR);
+    }
+
+    startCamera();
+  </script>
+</body>
+</html>
