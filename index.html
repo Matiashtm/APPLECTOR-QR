@@ -6,11 +6,13 @@
   <title>Lector QR ARCA</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; }
-    #result { margin-top: 20px; white-space: pre-wrap; }
-    video { width: 300px; border: 1px solid #ccc; border-radius: 8px; }
+    #result { margin-top: 20px; white-space: pre-wrap; font-size: 1rem; }
+    video { width: 100%; max-width: 450px; border: 1px solid #ccc; border-radius: 12px; }
+    .container { display: flex; flex-direction: column; align-items: center; }
   </style>
 </head>
 <body>
+  <div class="container">
   <h2>Lector QR de Factura ARCA</h2>
   <p>Escanee el QR de la factura para ver los datos.</p>
 
@@ -55,5 +57,6 @@
 
     startCamera();
   </script>
+  </div>
 </body>
 </html>
