@@ -1,72 +1,106 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lector QR Simple</title>
+<meta charset="utf-8">
 
-  <script src="https://unpkg.com/html5-qrcode"></script>
+<title>Escanear Factura AFIP/ARCA</title>
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background: #f7f7f7;
-      text-align: center;
-    }
-    #reader {
-      width: 300px;
-      margin: auto;
-    }
-    #resultado {
-      margin-top: 20px;
-      padding: 15px;
-      background: white;
-      border-radius: 8px;
-      font-size: 16px;
-      word-wrap: break-word;
-      box-shadow: 0 2px 6px rgba(0,0,0,.1);
-    }
-  </style>
+<style>
+body {
+  font-family: Arial;
+  text-align: center;
+  background: #111;
+  color: #fff;
+}
+#reader {
+  width: 95%;
+  margin: auto;
+}
+.dato {
+  background: #222;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 8px;
+  text-align: left;
+}
+</style>
+
 </head>
 <body>
 
-  <h2>Lector QR Simple (Cámara Trasera)</h2>
+<h2>ESCANEAR FACTURA QR</h2>
+<div id="reader"></div>
 
-  <div id="reader"></div>
+<h3>DATOS OBTENIDOS</h3>
+<div id="datos" class="dato">Esperando escaneo...</div>
 
-  <h3>Resultado:</h3>
-  <div id="resultado">Aún no se leyó ningún QR...</div>
+<script>
+// --- Iniciar lector con cámara TRASERA ---
+function startScanner() {
+    const html5QrCode = new Html5Qrcode("reader");
 
-  <script>
-    const reader = new Html5Qrcode("reader");
+    const config = {
+        fps: 10,
+        qrbox: 250,
+        facingMode: { exact: "environment" } // 👈 CAMARA TRASERA
+    };
 
-    Html5Qrcode.getCameras().then(cameras => {
-      if (cameras.length === 0) {
-        document.getElementById("resultado").innerText = "No se encontraron cámaras.";
-        return;
-      }
-
-      // Intentar encontrar cámara trasera por su nombre
-      let backCamera = cameras.find(
-        cam => /back|rear|environment|trasera/i.test(cam.label)
-      );
-
-      let camId = backCamera ? backCamera.id : cameras[0].id;
-
-      reader.start(
-        camId,
-        { fps: 10, qrbox: 250 },
-        qrText => {
-          document.getElementById("resultado").innerText = qrText;
-        },
-        err => {}
-      );
-    })
-    .catch(err => {
-      document.getElementById("resultado").innerText = "Error cámara: " + err;
+    html5QrCode.start(
+        { facingMode: { exact: "environment" } },
+        config,
+        onScanSuccess
+    ).catch(err => {
+        document.getElementById("datos").innerHTML = "ERROR: " + err;
     });
-  </script>
+}
+
+startScanner();
+
+// --- Cuando escanea un QR ---
+function onScanSuccess(decodedText) {
+    console.log("QR:", decodedText);
+
+    // Los QR de factura vienen con un link tipo:
+    // https://www.afip.gob.ar/fe/qr/?p=eyJ...
+    let url = new URL(decodedText);
+    let param = url.searchParams.get("p");
+
+    // Decodifico el JSON interno
+    let json = JSON.parse(atob(param));
+
+    /*
+      Ejemplo JSON AFIP / ARCA:
+      {
+        "ver":1,
+        "fecha":"2024-11-22",
+        "cuit":20123456789,
+        "ptoVta":5,
+        "tipoCmp":1,
+        "nroCmp":123,
+        "importe":4500.25,
+        "moneda":"PES",
+        "ctz":1,
+        "tipoDocRec":96,
+        "nroDocRec":12345678,
+        "tipoCodAut":"E",
+        "codAut":70417347368324
+      }
+    */
+
+    let html =
+        "<b>CUIT:</b> " + json.cuit + "<br>" +
+        "<b>Fecha:</b> " + json.fecha + "<br>" +
+        "<b>Importe:</b> $" + json.importe + "<br>" +
+        "<b>Punto de Venta:</b> " + json.ptoVta + "<br>" +
+        "<b>Tipo Comprobante:</b> " + json.tipoCmp + "<br>" +
+        "<b>Número Comprobante:</b> " + json.nroCmp + "<br>" +
+        "<b>Moneda:</b> " + json.moneda + "<br>" +
+        "<b>CAE:</b> " + json.codAut + "<br>";
+
+    document.getElementById("datos").innerHTML = html;
+}
+</script>
 
 </body>
 </html>
