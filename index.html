@@ -2,78 +2,52 @@
 <html>
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>Escanear Factura</title>
+
+<title>Escanear Factura AFIP/ARCA</title>
 <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
 <style>
 body {
-    margin: 0;
-    padding: 0;
-    background: #000;
-    color: white;
-    font-family: Arial, sans-serif;
-    overflow: hidden;
+  font-family: Arial;
+  text-align: center;
+  background: #111;
+  color: #fff;
 }
-
-/* Contenedor principal */
-#container {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-}
-
-/* Título */
-header {
-    padding: 12px;
-    background: #111;
-    text-align: center;
-    font-size: 20px;
-    font-weight: bold;
-}
-
-/* Scanner */
 #reader {
-    width: 100%;
-    height: 55vh;
-    margin: 0 auto;
+  width: 95%;
+  margin: auto;
 }
-
-/* Datos */
-#datos {
-    flex: 1;
-    background: #111;
-    padding: 12px;
-    overflow-y: auto;
-    font-size: 16px;
-    line-height: 1.5;
-    border-top: 1px solid #333;
+.dato {
+  background: #222;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 8px;
+  text-align: left;
 }
 </style>
+
 </head>
 <body>
 
-<div id="container">
-
-<header>ESCANEAR FACTURA QR</header>
-
+<h2>ESCANEAR FACTURA QR</h2>
 <div id="reader"></div>
 
-<div id="datos">Esperando escaneo...</div>
-
-</div>
+<h3>DATOS OBTENIDOS</h3>
+<div id="datos" class="dato">Esperando escaneo...</div>
 
 <script>
+// --- Iniciar lector con cámara TRASERA ---
 function startScanner() {
     const html5QrCode = new Html5Qrcode("reader");
 
     const config = {
         fps: 10,
-        qrbox: { width: 250, height: 250 }
+        qrbox: 250,
+        facingMode: { exact: "environment" } // 👈 CAMARA TRASERA
     };
 
     html5QrCode.start(
-        { facingMode: "environment" },  // Cámara trasera fija
+        { facingMode: { exact: "environment" } },
         config,
         onScanSuccess
     ).catch(err => {
@@ -83,29 +57,50 @@ function startScanner() {
 
 startScanner();
 
-// PROCESAR QR
+// --- Cuando escanea un QR ---
 function onScanSuccess(decodedText) {
-    try {
-        const url = new URL(decodedText);
-        const param = url.searchParams.get("p");
-        const json = JSON.parse(atob(param));
+    console.log("QR:", decodedText);
 
-        document.getElementById("datos").innerHTML = `
-            <b>CUIT:</b> ${json.cuit}<br>
-            <b>Fecha:</b> ${json.fecha}<br>
-            <b>Importe:</b> $${json.importe}<br>
-            <b>Punto de Venta:</b> ${json.ptoVta}<br>
-            <b>Tipo Comprobante:</b> ${json.tipoCmp}<br>
-            <b>Número Comprobante:</b> ${json.nroCmp}<br>
-            <b>Moneda:</b> ${json.moneda}<br>
-            <b>CAE:</b> ${json.codAut}<br>
-        `;
-    } catch (e) {
-        document.getElementById("datos").innerHTML = "QR no válido.";
-    }
+    // Los QR de factura vienen con un link tipo:
+    // https://www.afip.gob.ar/fe/qr/?p=eyJ...
+    let url = new URL(decodedText);
+    let param = url.searchParams.get("p");
+
+    // Decodifico el JSON interno
+    let json = JSON.parse(atob(param));
+
+    /*
+      Ejemplo JSON AFIP / ARCA:
+      {
+        "ver":1,
+        "fecha":"2024-11-22",
+        "cuit":20123456789,
+        "ptoVta":5,
+        "tipoCmp":1,
+        "nroCmp":123,
+        "importe":4500.25,
+        "moneda":"PES",
+        "ctz":1,
+        "tipoDocRec":96,
+        "nroDocRec":12345678,
+        "tipoCodAut":"E",
+        "codAut":70417347368324
+      }
+    */
+
+    let html =
+        "<b>CUIT:</b> " + json.cuit + "<br>" +
+        "<b>Fecha:</b> " + json.fecha + "<br>" +
+        "<b>Importe:</b> $" + json.importe + "<br>" +
+        "<b>Punto de Venta:</b> " + json.ptoVta + "<br>" +
+        "<b>Tipo Comprobante:</b> " + json.tipoCmp + "<br>" +
+        "<b>Número Comprobante:</b> " + json.nroCmp + "<br>" +
+        "<b>Moneda:</b> " + json.moneda + "<br>" +
+        "<b>CAE:</b> " + json.codAut + "<br>";
+
+    document.getElementById("datos").innerHTML = html;
 }
 </script>
 
 </body>
 </html>
-
