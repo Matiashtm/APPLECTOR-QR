@@ -1,353 +1,72 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Lector QR — Facturas ARCA (PWA fullscreen)</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lector QR Simple</title>
 
-  <!-- PWA meta -->
-  <meta name="theme-color" content="#0b1220" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="manifest" href="manifest.json" />
+  <!-- Librería del lector QR -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
-  <!-- Fonts & simple styles -->
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <style>
-    :root{
-      --bg:#071028;
-      --surface:#071428;
-      --accent:#16a34a;
-      --muted:#9fb8d9;
-      --card: rgba(255,255,255,.03);
-      --text:#e6eef8;
-      --radius:14px;
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f7f7f7;
+      text-align: center;
     }
-    html,body{height:100%;margin:0;font-family:Inter,system-ui,Roboto,Arial;background:linear-gradient(180deg,var(--bg),#07162b);color:var(--text);-webkit-font-smoothing:antialiased}
-    .app{min-height:100vh;display:flex;flex-direction:column;gap:12px;padding:14px;padding-bottom:20px;box-sizing:border-box}
-    header{display:flex;align-items:center;gap:12px}
-    h1{font-size:18px;margin:0}
-    .subtitle{font-size:12px;color:var(--muted)}
-    /* Reader area */
-    .reader-wrap{background:var(--card);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;align-items:stretch}
-    #reader{width:100%;aspect-ratio:4/3;background:#000;display:flex;align-items:center;justify-content:center}
-    #cameraMessage{padding:12px;text-align:center;color:var(--muted)}
-    /* controls */
-    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-    .btn{flex:1;min-width:120px;padding:12px;border-radius:12px;border:0;background:var(--accent);color:#fff;font-weight:600;box-shadow:0 6px 18px rgba(0,0,0,.4);cursor:pointer}
-    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,.06);color:var(--text)}
-    .btn.small{padding:8px;font-size:14px;min-width:82px}
-    /* info panel */
-    .panel{display:flex;flex-direction:column;gap:8px;margin-top:10px}
-    .card{background:var(--card);padding:12px;border-radius:12px}
-    pre{white-space:pre-wrap;word-break:break-word;background:transparent;padding:6px;border-radius:8px;color:#dff;margin:0}
-    label{font-size:13px;color:var(--muted);margin-bottom:6px;display:block}
-    .kv{display:flex;justify-content:space-between;padding:8px;border-radius:10px;background:rgba(255,255,255,.02);font-size:14px}
-    /* mobile layout */
-    @media(min-width:900px){
-      .layout{display:grid;grid-template-columns:1fr 360px;gap:12px}
+    #reader {
+      width: 300px;
+      margin: auto;
     }
-    @media(max-width:899px){
-      #reader{aspect-ratio:3/4}
+    #resultado {
+      margin-top: 20px;
+      padding: 15px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.1);
+      font-size: 16px;
+      word-wrap: break-word;
     }
-    footer{margin-top:auto;font-size:12px;color:var(--muted);text-align:center}
-    /* full screen hint */
-    .fullscreen-hint{display:flex;gap:8px;align-items:center;justify-content:center;padding:8px;border-radius:10px;background:rgba(255,255,255,.02);font-size:13px}
   </style>
-
-  <!-- html5-qrcode CDN -->
-  <script src="https://unpkg.com/html5-qrcode@2.4.0/minified/html5-qrcode.min.js"></script>
 </head>
 <body>
-  <div class="app">
-    <header>
-      <div style="flex:1">
-        <h1>Lector QR — Facturas ARCA</h1>
-        <div class="subtitle">Escanea rápido | Modo app (añadir a inicio para fullscreen)</div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button id="addHomeBtn" class="btn ghost small">Añadir</button>
-        <button id="startFsBtn" class="btn small">Pantalla</button>
-      </div>
-    </header>
 
-    <div class="reader-wrap card">
-      <div id="reader">
-        <div id="cameraMessage">Pulsa <strong>Iniciar cámara</strong> para permitir la cámara.</div>
-      </div>
+  <h2>Lector QR Simple</h2>
 
-      <div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <button id="startBtn" class="btn">Iniciar cámara (trasera)</button>
-        <button id="stopBtn" class="btn ghost">Detener</button>
-        <button id="switchBtn" class="btn ghost">Cambiar cámara</button>
-        <input id="fileInput" type="file" accept="image/*" style="display:none" />
-        <button id="uploadBtn" class="btn ghost small">Cargar foto</button>
-        <button id="pasteBtn" class="btn ghost small">Pegar</button>
-      </div>
-    </div>
+  <div id="reader"></div>
 
-    <div class="layout" style="gap:12px">
-      <div>
-        <div class="panel">
-          <div class="card">
-            <label>Último valor detectado</label>
-            <pre id="rawOutput">—</pre>
-          </div>
+  <h3>Resultado:</h3>
+  <div id="resultado">Aún no se leyó ningún QR...</div>
 
-          <div class="card">
-            <label>Parseo automático</label>
-            <div id="parsedOutput"><div class="subtitle">—</div></div>
-          </div>
+  <script>
+    // Crear lector
+    const reader = new Html5Qrcode("reader");
 
-          <div class="card" style="display:flex;gap:8px;align-items:center;justify-content:space-between">
-            <div style="flex:1">
-              <label>Acciones</label>
-              <div style="display:flex;gap:8px">
-                <button id="copyBtn" class="btn ghost small">Copiar</button>
-                <button id="openBtn" class="btn ghost small">Abrir URL</button>
-              </div>
-            </div>
-            <div style="width:1px;background:rgba(255,255,255,.03);height:48px;"></div>
-            <div style="width:120px">
-              <div class="kv"><span>FPS</span><span id="cfgFps">12</span></div>
-              <div class="kv" style="margin-top:6px"><span>qrbox</span><span id="cfgBox">300</span></div>
-            </div>
-          </div>
-        </div>
-      </div>
+    // Iniciar cámara trasera
+    Html5Qrcode.getCameras().then(cameras => {
+      if (cameras && cameras.length) {
+        let camId = cameras[0].id;  // Si hay varias cámaras, toma la primera
 
-      <aside>
-        <div class="card">
-          <label>Pegar manual / Texto</label>
-          <textarea id="manualTxt" style="width:100%;height:110px;border-radius:10px;padding:10px;background:transparent;color:var(--text);border:1px solid rgba(255,255,255,.03)"></textarea>
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <button id="applyManual" class="btn">Procesar</button>
-            <button id="clearManual" class="btn ghost">Limpiar</button>
-          </div>
-        </div>
+        reader.start(
+          camId,
+          {
+            fps: 10,
+            qrbox: 250
+          },
+          qrText => {
+            document.getElementById("resultado").innerText = qrText;
+          },
+          errorMessage => {
+            // Ignorar errores de escaneo
+          }
+        );
+      }
+    }).catch(err => {
+      document.getElementById("resultado").innerText = "Error al acceder a la cámara: " + err;
+    });
+  </script>
 
-        <div class="card" style="margin-top:10px">
-          <label>Notas / Tips</label>
-          <ul class="subtitle" style="padding-left:18px;margin:8px 0 0 0">
-            <li>Abre como PWA (añadir a inicio) para mejor experiencia.</li>
-            <li>Usá cámara trasera y buena iluminación.</li>
-            <li>Si falla la cámara, subí imagen o pega el texto.</li>
-          </ul>
-        </div>
-      </aside>
-    </div>
-
-    <div class="fullscreen-hint card" id="fsHint" style="display:none">
-      <div class="subtitle">Para una experiencia app: Añadir a la pantalla de inicio y abrir desde allí.</div>
-    </div>
-
-    <footer>Hecho para ARCA/AFIP · Soporta URL/JSON/pipe-separated</footer>
-  </div>
-
-<script>
-/* ------------- CONFIG ------------- */
-const config = { fps: 12, qrbox: 300, disableFlip: true };
-
-/* DOM */
-const readerId = "reader";
-const rawOutput = document.getElementById("rawOutput");
-const parsedOutput = document.getElementById("parsedOutput");
-const cameraMessage = document.getElementById("cameraMessage");
-const fileInput = document.getElementById("fileInput");
-const manualTxt = document.getElementById("manualTxt");
-const cfgFps = document.getElementById("cfgFps");
-const cfgBox = document.getElementById("cfgBox");
-const fsHint = document.getElementById("fsHint");
-
-/* UI */
-document.getElementById("cfgFps").innerText = config.fps;
-document.getElementById("cfgBox").innerText = config.qrbox;
-
-let html5QrcodeScanner = null;
-let cameras = [];
-let currentCameraId = null;
-
-/* init */
-html5QrcodeScanner = new Html5Qrcode(readerId, /*verbose=*/ false);
-
-/* CALLBACKS */
-function onScanSuccess(decodedText, decodedResult) {
-  if (rawOutput.innerText === decodedText) return;
-  rawOutput.innerText = decodedText;
-  parsedOutput.innerHTML = parseFacturaQr(decodedText);
-  // vibrate short (if supported)
-  if (navigator.vibrate) navigator.vibrate(70);
-}
-function onScanError(err) { /* silent */ }
-
-/* CAMERA CONTROL */
-async function startCamera(preferBack = true, makeFullscreen = false) {
-  try {
-    cameras = await Html5Qrcode.getCameras();
-    if (!cameras || cameras.length === 0) {
-      cameraMessage.innerText = "No se detectaron cámaras.";
-      return;
-    }
-    const back = cameras.find(c => /rear|back|environment|trasera/i.test(c.label));
-    currentCameraId = preferBack && back ? back.id : cameras[0].id;
-    cameraMessage.innerText = "Iniciando cámara...";
-
-    await html5QrcodeScanner.start(
-      { deviceId: { exact: currentCameraId } },
-      { fps: config.fps, qrbox: config.qrbox, disableFlip: config.disableFlip },
-      onScanSuccess,
-      onScanError
-    );
-
-    cameraMessage.innerText = "Cámara activa — apunta al QR.";
-    // optionally fullscreen video element
-    if (makeFullscreen) requestReaderFullscreen();
-  } catch (err) {
-    console.error("startCamera error", err);
-    cameraMessage.innerText = "Error iniciando cámara: " + (err && err.message ? err.message : err);
-  }
-}
-
-async function stopCamera() {
-  try {
-    await html5QrcodeScanner.stop();
-    cameraMessage.innerText = "Cámara detenida.";
-  } catch (e) {
-    cameraMessage.innerText = "Ninguna cámara activa.";
-  }
-}
-
-/* switch camera */
-function switchCamera() {
-  if (!cameras || cameras.length <= 1) { alert("No hay múltiples cámaras detectadas."); return; }
-  const idx = cameras.findIndex(c => c.id === currentCameraId);
-  const next = cameras[(idx + 1) % cameras.length];
-  stopCamera().then(() => { currentCameraId = next.id; startCamera(false); });
-}
-
-/* scan file */
-document.getElementById("uploadBtn").addEventListener("click", ()=> fileInput.click());
-fileInput.addEventListener("change", async (e) => {
-  const file = e.target.files && e.target.files[0];
-  if (!file) return;
-  try {
-    const result = await Html5Qrcode.scanFile(file, true);
-    rawOutput.innerText = result;
-    parsedOutput.innerHTML = parseFacturaQr(result);
-  } catch (err) {
-    alert("No se detectó QR en la imagen: " + err);
-  }
-});
-
-/* paste */
-document.getElementById("pasteBtn").addEventListener("click", async () => {
-  try {
-    const t = (await navigator.clipboard.readText()).trim();
-    if (!t) return alert("Portapapeles vacío.");
-    rawOutput.innerText = t;
-    parsedOutput.innerHTML = parseFacturaQr(t);
-  } catch (e) {
-    alert("No se pudo leer el portapapeles. Pégal o subí la imagen.");
-  }
-});
-
-/* manual */
-document.getElementById("applyManual").addEventListener("click", ()=> {
-  const t = manualTxt.value.trim(); if (!t) return alert("Sin texto."); rawOutput.innerText = t; parsedOutput.innerHTML = parseFacturaQr(t);
-});
-document.getElementById("clearManual").addEventListener("click", ()=> manualTxt.value = "");
-
-/* start/stop/switch */
-document.getElementById("startBtn").addEventListener("click", ()=> startCamera(true, true));
-document.getElementById("stopBtn").addEventListener("click", stopCamera);
-document.getElementById("switchBtn").addEventListener("click", switchCamera);
-
-/* copy/open */
-document.getElementById("copyBtn").addEventListener("click", async ()=> {
-  const txt = rawOutput.innerText; if (!txt || txt === "—") return;
-  try { await navigator.clipboard.writeText(txt); alert("Copiado al portapapeles."); } catch(e){ alert("No se pudo copiar."); }
-});
-document.getElementById("openBtn").addEventListener("click", ()=> {
-  const txt = rawOutput.innerText;
-  try { const url = new URL(txt); window.open(url.href, "_blank"); } catch(e){ alert("No es una URL válida."); }
-});
-
-/* fullscreen helpers */
-async function requestReaderFullscreen(){
-  try {
-    const el = document.getElementById(readerId);
-    if (el.requestFullscreen) await el.requestFullscreen();
-    else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
-  } catch(e){ /* ignore */ }
-}
-document.getElementById("startFsBtn").addEventListener("click", ()=> requestReaderFullscreen());
-
-/* add to home / PWA install prompt */
-let deferredPrompt = null;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  document.getElementById('addHomeBtn').style.display = 'inline-block';
-});
-document.getElementById('addHomeBtn').addEventListener('click', async () => {
-  if (deferredPrompt) {
-    deferredPrompt.prompt();
-    const choice = await deferredPrompt.userChoice;
-    deferredPrompt = null;
-  } else {
-    alert("Abrí el sitio desde el navegador y toca 'Agregar a pantalla de inicio'.");
-  }
-});
-
-/* parser flexible para ARCA/AFIP */
-function parseFacturaQr(text) {
-  if (!text) return "<div class='subtitle'>Vacío</div>";
-  // 1) URL
-  try {
-    const url = new URL(text);
-    const params = Object.fromEntries(url.searchParams.entries());
-    // Mapea nombres comunes a mayúsculas de columnas:
-    const cuit = params.cuit || params.cuit_emisor || params.cuitEmisor || params.emisor_cuit || "";
-    const pto = params.pto_vta || params.ptoVta || params.punto || params.pv || "";
-    const tipo = params.tipo_cbte || params.tipoCbte || params.tipo || "";
-    const nro = params.cbte || params.nro_cbte || params.nro || params.nroCbte || "";
-    const fecha = params.fecha || params.fech || "";
-    const importe = params.importe || params.total || params.imp || "";
-    let html = `<div class="kv"><span>CUIT</span><strong>${escapeHtml(cuit)}</strong></div>`;
-    html += `<div class="kv"><span>PTO_VTA</span><strong>${escapeHtml(pto)}</strong></div>`;
-    html += `<div class="kv"><span>TIPO</span><strong>${escapeHtml(tipo)}</strong></div>`;
-    html += `<div class="kv"><span>NRO</span><strong>${escapeHtml(nro)}</strong></div>`;
-    html += `<div class="kv"><span>FECHA</span><strong>${escapeHtml(fecha)}</strong></div>`;
-    html += `<div class="kv"><span>IMPORTE</span><strong>${escapeHtml(importe)}</strong></div>`;
-    return html;
-  } catch(e) {}
-  // 2) JSON
-  try {
-    const obj = JSON.parse(text);
-    return `<pre>${escapeHtml(JSON.stringify(obj,null,2))}</pre>`;
-  } catch(e){}
-  // 3) Pipe-separated
-  if (text.includes("|")) {
-    const p = text.split("|").map(s=>s.trim());
-    // heuristic: try common positions (ajusta si tenés ejemplos)
-    const htmlParts = p.map((v,i)=>`<div class="kv"><span>Parte ${i+1}</span><strong>${escapeHtml(v)}</strong></div>`).join("");
-    return htmlParts;
-  }
-  // fallback
-  return `<pre>${escapeHtml(text)}</pre>`;
-}
-
-/* escape util */
-function escapeHtml(s){ return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;"); }
-
-/* register service worker */
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('service-worker.js').then(()=> {
-    // show hint about PWA if installed as standalone
-    if (window.matchMedia('(display-mode: standalone)').matches) fsHint.style.display = 'block';
-  }).catch(()=>{/* ignore */});
-}
-</script>
 </body>
 </html>
+
