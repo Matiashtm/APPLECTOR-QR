@@ -5,8 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lector QR Simple</title>
 
-  <!-- Librería del lector QR -->
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
 
   <style>
     body {
@@ -24,15 +23,15 @@
       padding: 15px;
       background: white;
       border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,.1);
       font-size: 16px;
       word-wrap: break-word;
+      box-shadow: 0 2px 6px rgba(0,0,0,.1);
     }
   </style>
 </head>
 <body>
 
-  <h2>Lector QR Simple</h2>
+  <h2>Lector QR Simple (Cámara Trasera)</h2>
 
   <div id="reader"></div>
 
@@ -40,33 +39,34 @@
   <div id="resultado">Aún no se leyó ningún QR...</div>
 
   <script>
-    // Crear lector
     const reader = new Html5Qrcode("reader");
 
-    // Iniciar cámara trasera
     Html5Qrcode.getCameras().then(cameras => {
-      if (cameras && cameras.length) {
-        let camId = cameras[0].id;  // Si hay varias cámaras, toma la primera
-
-        reader.start(
-          camId,
-          {
-            fps: 10,
-            qrbox: 250
-          },
-          qrText => {
-            document.getElementById("resultado").innerText = qrText;
-          },
-          errorMessage => {
-            // Ignorar errores de escaneo
-          }
-        );
+      if (cameras.length === 0) {
+        document.getElementById("resultado").innerText = "No se encontraron cámaras.";
+        return;
       }
-    }).catch(err => {
-      document.getElementById("resultado").innerText = "Error al acceder a la cámara: " + err;
+
+      // Intentar encontrar cámara trasera por su nombre
+      let backCamera = cameras.find(
+        cam => /back|rear|environment|trasera/i.test(cam.label)
+      );
+
+      let camId = backCamera ? backCamera.id : cameras[0].id;
+
+      reader.start(
+        camId,
+        { fps: 10, qrbox: 250 },
+        qrText => {
+          document.getElementById("resultado").innerText = qrText;
+        },
+        err => {}
+      );
+    })
+    .catch(err => {
+      document.getElementById("resultado").innerText = "Error cámara: " + err;
     });
   </script>
 
 </body>
 </html>
-
