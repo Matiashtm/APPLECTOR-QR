@@ -1,0 +1,17 @@
+name: Procesar QR ARCA
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [procesar_qr]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Procesar QR ARCA
+        run: |
+          echo "QR recibido: ${{ github.event.client_payload.qr }}"
+          node procesar_qr.js '${{ github.event.client_payload.qr }}' '${{ github.event.client_payload.id }}'
