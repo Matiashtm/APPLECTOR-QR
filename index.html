@@ -1,89 +1,346 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lector QR ARCA</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Lector QR - Facturas ARCA/AFIP</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    #result { margin-top: 20px; white-space: pre-wrap; font-size: 1rem; }
-    video { width: 100%; max-width: 450px; border: 1px solid #ccc; border-radius: 12px; }
-    .container { display: flex; flex-direction: column; align-items: center; }
+    :root{
+      --accent:#16a34a;
+      --bg:#0f172a;
+      --card:#0b1220;
+      --text:#e6eef8;
+    }
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;background:linear-gradient(180deg,#071028 0%, #07162b 100%);color:var(--text)}
+    .wrap{max-width:980px;margin:24px auto;padding:20px;}
+    header{display:flex;gap:16px;align-items:center;margin-bottom:12px}
+    h1{margin:0;font-size:18px}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+    button{background:var(--accent);color:#fff;border:0;padding:8px 12px;border-radius:8px;cursor:pointer}
+    button.secondary{background:transparent;border:1px solid rgba(255,255,255,.08)}
+    #reader{width:100%;max-width:720px;border-radius:12px;overflow:hidden;background:#000}
+    .cols{display:grid;grid-template-columns:1fr 380px;gap:16px;margin-top:14px}
+    .card{background:rgba(255,255,255,.03);padding:12px;border-radius:10px;min-height:120px}
+    pre{white-space:pre-wrap;word-break:break-word;background:rgba(0,0,0,.2);padding:8px;border-radius:6px;color:#dff}
+    label{display:block;font-size:13px;color:#9fb8d9;margin-bottom:6px}
+    .small{font-size:13px;color:#9fb8d9}
+    .field{margin-bottom:8px}
+    .kv{display:flex;justify-content:space-between;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,.02);margin-bottom:6px}
+    .hint{font-size:12px;color:#9fb8d966}
+    .danger{color:#ff7b7b}
   </style>
+  <!-- html5-qrcode CDN -->
+  <script src="https://unpkg.com/html5-qrcode@2.4.0/minified/html5-qrcode.min.js"></script>
 </head>
 <body>
-  <div class="container">
-  <h2>Lector QR de Factura ARCA</h2>
-  <p>Escanee el QR de la factura para ver los datos.</p>
+  <div class="wrap">
+    <header>
+      <h1>Lector QR para Facturas (ARCA/AFIP)</h1>
+      <div class="small">Escaneo rápido desde cámara o imagen — listo para GitHub Pages</div>
+    </header>
 
-  <video id="preview"></video>
-  <div id="result"></div>
+    <div class="controls">
+      <button id="startBtn">Iniciar cámara (trasera)</button>
+      <button id="stopBtn" class="secondary">Detener cámara</button>
+      <button id="switchBtn" class="secondary">Cambiar cámara</button>
+      <input id="fileInput" type="file" accept="image/*" />
+      <button id="pasteBtn" class="secondary">Pegar contenido QR</button>
+    </div>
 
-  <script type="module">
-    import { BrowserQRCodeReader } from "https://cdn.jsdelivr.net/npm/@zxing/browser@latest/+esm";
+    <div id="reader" class="card">
+      <!-- el video del scanner irá aquí -->
+      <div id="cameraMessage" class="hint">Cámara no iniciada.</div>
+    </div>
 
-    const video = document.getElementById('preview');
-    const resultDiv = document.getElementById('result');
+    <div class="cols">
+      <div>
+        <div class="card">
+          <div class="field">
+            <label>Ultimo valor detectado</label>
+            <pre id="rawOutput">—</pre>
+          </div>
+          <div class="field">
+            <label>Parseo automático (si aplica)</label>
+            <div id="parsedOutput">—</div>
+          </div>
+          <div class="field">
+            <label>Acciones</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button id="copyBtn" class="secondary">Copiar texto</button>
+              <button id="openBtn" class="secondary">Abrir (si es URL)</button>
+            </div>
+          </div>
+        </div>
 
-    async function startScanner() {
-      const codeReader = new BrowserQRCodeReader();
-      try {
-        const result = await codeReader.decodeFromVideoDevice(null, 'preview', (res) => {
-          if (res) {
-            try {
-              const qr = res.getText();
-              const data = JSON.parse(atob(qr.split('=')[1]));
-              resultDiv.textContent = JSON.stringify(data, null, 2);
-            } catch (e) {
-              resultDiv.textContent = "QR leído, pero no se pudo interpretar el contenido.";
-            }
-          }
-        });
-      } catch (err) {
-        resultDiv.textContent = "Error al iniciar el lector: " + err;
-      }
-    }
+        <div style="margin-top:12px" class="card">
+          <label>Configuración (optimización lectura)</label>
+          <div class="small hint">Para QRs de facturas: preferir cámara trasera, reducir resolución y aumentar fps mejora la velocidad en dispositivos móviles.</div>
+          <div style="margin-top:10px">
+            <div class="kv"><span>FPS</span><span id="cfgFps">12</span></div>
+            <div class="kv"><span>qrbox (px)</span><span id="cfgBox">300</span></div>
+            <div class="kv"><span>disableFlip</span><span id="cfgFlip">true</span></div>
+          </div>
+        </div>
+      </div>
 
-    startScanner();
-  </script>
-  <script>
-    const video = document.getElementById('preview');
-    const resultDiv = document.getElementById('result');
+      <aside>
+        <div class="card">
+          <label>Entrada manual / Pegar</label>
+          <textarea id="manualTxt" style="width:100%;height:100px;border-radius:8px;padding:8px;background:rgba(0,0,0,.2);color:var(--text);border:0"></textarea>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button id="applyManual">Procesar</button>
+            <button id="clearManual" class="secondary">Limpiar</button>
+          </div>
+        </div>
 
-    async function startCamera() {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } } })({ video: { facingMode: "environment" } });
-      video.srcObject = stream;
-      video.setAttribute('playsinline', true);
-      video.play();
-      requestAnimationFrame(scanQR);
-    }
-
-    function scanQR() {
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.imageSmoothingEnabled = false; ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, canvas.width, canvas.height);
-
-        if (code) {
-          try {
-            const data = JSON.parse(atob(code.data.split('=')[1]));
-            resultDiv.textContent = JSON.stringify(data, null, 2);
-          } catch (e) {
-            resultDiv.textContent = "QR leído, pero no se pudo interpretar el contenido.";
-          }
-        }
-      }
-      requestAnimationFrame(scanQR);
-    }
-
-    startCamera();
-  </script>
+        <div class="card" style="margin-top:12px">
+          <label>Notas / Tips</label>
+          <ul class="small hint">
+            <li>Sirve mejor en HTTPS (GitHub Pages) y con la cámara trasera en móviles.</li>
+            <li>Si falla la cámara, sube una imagen (botón de archivo) o pega el texto del QR.</li>
+            <li>Si conoces el formato exacto del QR de ARCA/AFIP, pégalo y ajusto el parser.</li>
+          </ul>
+        </div>
+      </aside>
+    </div>
   </div>
+
+<script>
+  // --- Configuración rápida para lectura eficiente ---
+  const config = {
+    fps: 12,                // frames por segundo que procesa la librería
+    qrbox: 300,             // tamaño de recorte del área de búsqueda (px)
+    disableFlip: true       // desactiva flip horizontal (más rápido si la cámara no necesita volteo)
+  };
+
+  // estado
+  let currentCameraId = null;
+  let cameras = [];
+  let html5QrcodeScanner = null;
+
+  // elementos
+  const readerElem = document.getElementById("reader");
+  const rawOutput = document.getElementById("rawOutput");
+  const parsedOutput = document.getElementById("parsedOutput");
+  const cameraMessage = document.getElementById("cameraMessage");
+  const fileInput = document.getElementById("fileInput");
+  const manualTxt = document.getElementById("manualTxt");
+
+  document.getElementById("cfgFps").innerText = config.fps;
+  document.getElementById("cfgBox").innerText = config.qrbox;
+  document.getElementById("cfgFlip").innerText = String(config.disableFlip);
+
+  // inicializar objeto Html5Qrcode
+  html5QrcodeScanner = new Html5Qrcode(/* camera element id */ "reader", /* verbose= */ false);
+
+  // callback cuando se detecta QR
+  function onScanSuccess(decodedText, decodedResult) {
+    // evita repeticiones continuas: solo actualiza si cambió
+    if (rawOutput.innerText === decodedText) return;
+    rawOutput.innerText = decodedText;
+    parsedOutput.innerHTML = parseFacturaQr(decodedText);
+  }
+
+  function onScanError(errorMessage) {
+    // silenciamos logs frecuentes; podrías mostrar si lo deseas
+    // console.debug("scan error", errorMessage);
+  }
+
+  // intenta iniciar la cámara trasera (environment), si hay varias cámaras permite alternar
+  async function startCamera(preferEnvironment = true) {
+    try {
+      cameras = await Html5Qrcode.getCameras();
+      if (!cameras || cameras.length === 0) {
+        cameraMessage.innerText = "No se detectaron cámaras.";
+        return;
+      }
+      // elegir cámara por facingMode si disponible (label suele contener 'back' o 'rear')
+      if (preferEnvironment) {
+        const back = cameras.find(c => /rear|back|environment|trasera/i.test(c.label));
+        currentCameraId = back ? back.id : cameras[0].id;
+      } else {
+        currentCameraId = cameras[0].id;
+      }
+
+      cameraMessage.innerText = "Iniciando cámara...";
+      const constraints = {
+        fps: config.fps,
+        qrbox: config.qrbox,
+        disableFlip: config.disableFlip,
+      };
+
+      await html5QrcodeScanner.start(
+        { deviceId: { exact: currentCameraId } },
+        { fps: config.fps, qrbox: config.qrbox, disableFlip: config.disableFlip },
+        onScanSuccess,
+        onScanError
+      );
+
+      cameraMessage.innerText = "Cámara activa — apunta al QR de la factura.";
+    } catch (err) {
+      console.error("startCamera error", err);
+      cameraMessage.innerHTML = `<span class="danger">Error iniciando cámara:</span> ${err.message || err}`;
+    }
+  }
+
+  async function stopCamera() {
+    try {
+      await html5QrcodeScanner.stop();
+      cameraMessage.innerText = "Cámara detenida.";
+    } catch (err) {
+      console.warn("stop error", err);
+      cameraMessage.innerText = "No había cámara activa.";
+    }
+  }
+
+  // alterna entre cámaras detectadas
+  function switchCamera() {
+    if (!cameras || cameras.length <= 1) {
+      alert("No hay múltiples cámaras detectadas.");
+      return;
+    }
+    const idx = cameras.findIndex(c => c.id === currentCameraId);
+    const next = cameras[(idx + 1) % cameras.length];
+    stopCamera().then(() => {
+      currentCameraId = next.id;
+      startCamera(false);
+    });
+  }
+
+  // procesar imagen cargada como fallback
+  fileInput.addEventListener("change", async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    try {
+      const result = await Html5Qrcode.scanFile(file, /* showImage=*/ true);
+      rawOutput.innerText = result;
+      parsedOutput.innerHTML = parseFacturaQr(result);
+    } catch (err) {
+      alert("No se detectó QR en la imagen: " + err);
+    }
+  });
+
+  // manejar botones
+  document.getElementById("startBtn").addEventListener("click", () => startCamera(true));
+  document.getElementById("stopBtn").addEventListener("click", stopCamera);
+  document.getElementById("switchBtn").addEventListener("click", switchCamera);
+
+  document.getElementById("pasteBtn").addEventListener("click", async () => {
+    // intenta obtener from clipboard (permiso)
+    try {
+      const text = (await navigator.clipboard.readText()).trim();
+      if (!text) return alert("El portapapeles está vacío o no contiene texto.");
+      rawOutput.innerText = text;
+      parsedOutput.innerHTML = parseFacturaQr(text);
+    } catch (err) {
+      // fallback: mostrar área para pegar manualmente
+      alert("No se pudo leer el portapapeles. Pega el texto en el recuadro de la derecha.");
+    }
+  });
+
+  document.getElementById("applyManual").addEventListener("click", () => {
+    const t = manualTxt.value.trim();
+    if (!t) return alert("No hay texto.");
+    rawOutput.innerText = t;
+    parsedOutput.innerHTML = parseFacturaQr(t);
+  });
+
+  document.getElementById("clearManual").addEventListener("click", () => {
+    manualTxt.value = "";
+  });
+
+  document.getElementById("copyBtn").addEventListener("click", async () => {
+    const txt = rawOutput.innerText;
+    if (!txt || txt === "—") return;
+    try {
+      await navigator.clipboard.writeText(txt);
+      alert("Copiado al portapapeles.");
+    } catch (err) {
+      alert("No se pudo copiar: " + err);
+    }
+  });
+
+  document.getElementById("openBtn").addEventListener("click", () => {
+    const txt = rawOutput.innerText;
+    try {
+      const url = new URL(txt);
+      window.open(url.href, "_blank");
+    } catch (err) {
+      alert("El texto no es una URL válida.");
+    }
+  });
+
+  // ------ Parser flexible para QR de facturas ARCA/AFIP ------
+  function parseFacturaQr(text) {
+    if (!text) return "Vacío";
+
+    // 1) si es URL -> mostrar parámetros
+    try {
+      const url = new URL(text);
+      const params = {};
+      for (const [k,v] of url.searchParams.entries()) params[k]=v;
+      let html = `<div class="small"><strong>URL detectada</strong>: <a href="${url.href}" target="_blank">${short(url.href)}</a></div>`;
+      if (Object.keys(params).length) {
+        html += "<div style='margin-top:8px'><strong>Parámetros:</strong>";
+        for (const k of Object.keys(params)) {
+          html += `<div class="kv"><span>${escapeHtml(k)}</span><span>${escapeHtml(params[k])}</span></div>`;
+        }
+        html += "</div>";
+      } else {
+        html += `<div class="hint">Sin parámetros en la URL.</div>`;
+      }
+      // si tiene path con base64 o token, mostrar intento de decode
+      if (/base64|token|data=/.test(url.href)) {
+        html += `<div class="hint">La URL puede contener datos embebidos.</div>`;
+      }
+      return html;
+    } catch (e) {
+      // no es URL -> seguir
+    }
+
+    // 2) si es JSON -> parsear
+    try {
+      const obj = JSON.parse(text);
+      let html = "<div><strong>JSON detectado</strong>";
+      html += "<pre>" + escapeHtml(JSON.stringify(obj, null, 2)) + "</pre></div>";
+      return html;
+    } catch (e) {
+      // no es JSON
+    }
+
+    // 3) si parece pipe-separated (formato antiguo): "1|2020-...|CUIT|PTO|TIPO|NRO|IMP|..."
+    if (text.includes("|")) {
+      const parts = text.split("|").map(s => s.trim());
+      let html = "<div><strong>Cadena separada por '|'</strong><div class='hint'>Se muestran las partes detectadas:</div>";
+      parts.forEach((p,i) => {
+        html += `<div class="kv"><span>parte ${i+1}</span><span>${escapeHtml(p)}</span></div>`;
+      });
+      html += "</div>";
+      return html;
+    }
+
+    // 4) fallback: mostrar raw y sugerir inspección manual
+    return `<div><strong>Contenido crudo</strong><pre>${escapeHtml(text)}</pre><div class="hint">Si este es un formato ARCA/AFIP específico, pégalo en el cuadro de la derecha para que lo adapte al parser.</div></div>`;
+  }
+
+  // utilidades
+  function escapeHtml(s) {
+    return String(s)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;");
+  }
+  function short(s, len=80){
+    return s.length > len ? s.slice(0, len-1) + "…": s;
+  }
+
+  // Iniciar con cámara no por defecto (evitar pedir permisos hasta que usuario lo pida)
+  cameraMessage.innerText = "Pulsa 'Iniciar cámara' para permitir el acceso a la cámara.";
+
+  // para precargar cámaras y permitir cambiar rápidamente (no inicia video)
+  Html5Qrcode.getCameras().then(list => { cameras = list; }).catch(()=>{ /* ignore */ });
+
+</script>
 </body>
 </html>
-
